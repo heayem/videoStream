@@ -1,12 +1,15 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { PUBLIC_DIR, OUTPUT_DIR, UPLOADS_DIR } = require('./config/constants');
-const videoRoutes = require('./routes/video.routes');
+const cors = require('cors');
+const { PORT, PUBLIC_DIR, OUTPUT_DIR, UPLOADS_DIR } = require('./src/config/constants');
+const videoRoutes = require('./src/routes/video.routes');
 
 const app = express();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cors({ origin: "*" }));
 
 // Ensure upload directories exist
 [UPLOADS_DIR, OUTPUT_DIR].forEach(dir => {
@@ -31,5 +34,11 @@ app.get('/watch/:id', (req, res) => {
 app.get('/embed/:id', (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'Embed.html'));
 });
+
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server is running at http://localhost:${PORT}`);
+    });
+}
 
 module.exports = app;

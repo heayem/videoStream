@@ -1,6 +1,6 @@
 /** @jest-environment node */
 const request = require('supertest');
-const app = require('../src/app');
+const app = require('../index');
 const path = require('path');
 const fs = require('fs');
 const { DB_FILE } = require('../src/config/constants');
