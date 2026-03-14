@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Streamer Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --primary: #38bdf8;
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+
+        .upload-section {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        input[type="file"] {
+            margin-right: 1rem;
+        }
+
+        button {
+            background: var(--primary);
+            color: var(--bg);
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .upload-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .file-input-wrapper {
+            flex: 1;
+            position: relative;
+            background: #334155;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            border: 2px dashed #475569;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .file-input-wrapper:hover {
+            border-color: var(--primary);
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            pointer-events: none;
+        }
+
+        .file-name {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+        }
+
+        .video-grid {
+            width: fit-content;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .video-card {
+            background: var(--card);
+            padding: 1rem;
+            border-radius: 1rem;
+            text-align: left;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-ready {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-pending {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-error {
+            background: #ef4444;
+            color: white;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            display: none;
+            background: black;
+        }
+
+        .actions {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Video Streamer Pro</h1>
+
+        <div class="upload-section">
+            <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: #f8fafc;">Upload New Video</h3>
+            <div class="upload-row">
+                <div class="file-input-wrapper">
+                    <div class="file-label">🎬 Select Video File (Required)</div>
+                    <div class="file-name" id="videoFileName">No file chosen</div>
+                    <input type="file" id="videoFile" accept="video/*"
+                        onchange="document.getElementById('videoFileName').innerText = this.files[0] ? this.files[0].name : 'No file chosen'">
+                </div>
+                <div class="file-input-wrapper" style="border-style: dotted;">
+                    <div class="file-label">🖼️ Custom Thumbnail (Optional)</div>
+                    <div class="file-name" id="thumbFileName">Auto-generate from video</div>
+                    <input type="file" id="thumbnailFile" accept="image/*"
+                        onchange="document.getElementById('thumbFileName').innerText = this.files[0] ? this.files[0].name : 'Auto-generate from video'">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <input type="text" id="videoTitle" placeholder="Video Title (Optional)"
+                    style="flex: 1; padding: 0.8rem; border-radius: 0.5rem; border:1px solid #334155; background: #0f172a; color: white; font-family: inherit;">
+                <button id="uploadBtn" onclick="uploadVideo()"
+                    style="padding: 0.8rem 2rem; font-size: 1rem;">Upload</button>
+            </div>
+
+            <div id="uploadProgressContainer" style="display:none; margin-top: 1.5rem;">
+                <progress id="uploadProgressBar" value="0" max="100"
+                    style="width: 100%; height: 8px; border-radius: 4px; overflow: hidden;"></progress>
+                <div id="uploadProgressText"
+                    style="text-align: center; margin-top: 0.5rem; font-weight: bold; font-size: 0.9rem; color: var(--primary);">
+                    0%</div>
+            </div>
+        </div>
+
+        <div id="videoList" class="video-grid">
+            <!-- Videos will appear here -->
+        </div>
+    </div>
+
+    <script>
+        async function fetchVideos() {
+            const list = document.getElementById('videoList');
+            if (list.children.length === 0) list.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2rem;">Loading videos...</div>';
+
+            try {
+                const res = await fetch('/api/videos');
+                const videos = await res.json();
+                list.innerHTML = '';
+
+                if (videos.length === 0) {
+                    list.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 6rem;">No videos uploaded yet.</div>';
+                    return;
+                }
+
+                requestAnimationFrame(() => {
+                    videos.forEach(v => {
+                        const card = document.createElement('div');
+                        card.className = 'video-card';
+
+                        let thumbHtml = '<div style="width: 120px; height: 90px; background: #334155; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">No thumb</div>';
+                        let playBtnHtml = '';
+                        let embedHtml = '';
+
+                        if (v.status === 'ready') {
+                            thumbHtml = '<img src="/stream/' + v.id + '/thumbnail.jpg" onerror="this.onerror=null; this.src=\'\';" style="width: 120px; border-radius: 0.5rem; background: #334155; min-height: 90px; object-fit: cover;" />';
+                            playBtnHtml = '<a href="/watch/' + v.id + '" target="_blank" style="background: var(--primary); color: var(--bg); padding: 0.5rem 1.5rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9rem; border: none; cursor: pointer; display: inline-block;">Play</a>';
+                            embedHtml = '<div style="margin-top: 0.5rem; font-size:0.75rem; color:#94a3b8;">Embed: <input type="text" readonly value=\'<iframe src="' + window.location.origin + '/embed/' + v.id + '" width="640" height="360" frameborder="0" allowfullscreen></iframe>\' style="width:100%; box-sizing:border-box; background:#0f172a; color:#cbd5e1; border:1px solid #334155; padding:0.25rem; margin-top: 0.2rem;" onclick="this.select()"></div>';
+                        }
+
+                        card.innerHTML = [
+                            '<div style="display: flex; gap: 1rem; align-items: start;">',
+                            thumbHtml,
+                            '<div style="flex: 1;">',
+                            '<div class="status status-' + v.status + '">' + v.status + '</div>',
+
+                            '<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;" id="title-display-' + v.id + '">',
+                            '<div style="font-weight: bold; font-size: 1.1rem; flex: 1;" id="title-text-' + v.id + '">' + (v.title || '') + '</div>',
+                            '<button onclick="editTitle(\'' + v.id + '\')" style="background: transparent; color: var(--primary); padding: 0.2rem; cursor: pointer;">Edit</button>',
+                            '</div>',
+
+                            '<div style="display: none; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;" id="title-edit-' + v.id + '">',
+                            '<input type="text" id="title-input-' + v.id + '" value="' + (v.title ? v.title.replace(/"/g, '&quot;') : '') + '" style="padding: 0.5rem; border-radius: 0.5rem; border:none; flex: 1; background: #334155; color: white;">',
+                            '<button onclick="saveTitle(\'' + v.id + '\')" style="padding: 0.2rem 0.5rem;">Save</button>',
+                            '<button onclick="cancelEdit(\'' + v.id + '\')" style="background: #ef4444; padding: 0.2rem 0.5rem;">X</button>',
+                            '</div>',
+
+                            '<div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem;">ID: ' + v.id + '</div>',
+                            '<div class="actions">',
+                            playBtnHtml,
+                            '<button class="btn-delete" onclick="deleteVideo(\'' + v.id + '\')">Delete</button>',
+                            '</div>',
+                            embedHtml,
+                            '</div>',
+                            '</div>'
+                        ].join('');
+                        list.appendChild(card);
+                    });
+                });
+            } catch (err) {
+                console.error(err);
+                list.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 2rem;">Error loading videos</div>';
+            }
+        }
+
+        function editTitle(id) {
+            document.getElementById('title-display-' + id).style.display = 'none';
+            document.getElementById('title-edit-' + id).style.display = 'flex';
+        }
+
+        function cancelEdit(id) {
+            document.getElementById('title-display-' + id).style.display = 'flex';
+            document.getElementById('title-edit-' + id).style.display = 'none';
+        }
+
+        async function saveTitle(id) {
+            const newTitle = document.getElementById('title-input-' + id).value;
+            await fetch('/api/videos/' + id, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: newTitle })
+            });
+            fetchVideos();
+        }
+
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const thumbInput = document.getElementById('thumbnailFile');
+            const titleInput = document.getElementById('videoTitle');
+            if (!fileInput.files[0]) return alert('Please select a video file first.');
+
+            const formData = new FormData();
+            formData.append('video', fileInput.files[0]);
+            if (thumbInput.files[0]) formData.append('thumbnail', thumbInput.files[0]);
+            formData.append('title', titleInput.value);
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            const progressContainer = document.getElementById('uploadProgressContainer');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressText = document.getElementById('uploadProgressText');
+
+            uploadBtn.disabled = true;
+            progressContainer.style.display = 'block';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/videos', true);
+
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.value = percentComplete;
+                    progressText.innerText = Math.round(percentComplete) + '% Uploaded';
+                }
+            };
+
+            xhr.onload = () => {
+                uploadBtn.disabled = false;
+                progressContainer.style.display = 'none';
+                progressBar.value = 0;
+
+                if (xhr.status === 201) {
+                    fileInput.value = '';
+                    thumbInput.value = '';
+                    titleInput.value = '';
+                    document.getElementById('videoFileName').innerText = 'No file chosen';
+                    document.getElementById('thumbFileName').innerText = 'Auto-generate from video';
+                    fetchVideos();
+
+                    const interval = setInterval(async () => {
+                        await fetchVideos();
+                        const videos = await (await fetch('/api/videos')).json();
+                        if (!videos.some(v => v.status === 'pending')) clearInterval(interval);
+                    }, 5000);
+                } else {
+                    alert('Upload failed: ' + xhr.responseText);
+                }
+            };
+
+            xhr.onerror = () => {
+                uploadBtn.disabled = false;
+                progressContainer.style.display = 'none';
+                alert('Upload error');
+            };
+
+            xhr.send(formData);
+        }
+
+        // Play functionality handled natively by the Watch link href natively.
+
+        async function deleteVideo(id) {
+            if (!confirm('Are you sure?')) return;
+            await fetch('/api/videos/' + id, { method: 'DELETE' });
+            fetchVideos();
+        }
+
+        fetchVideos();
+    </script>
+</body>
+
+</html>

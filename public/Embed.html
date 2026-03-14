@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Stream Embed</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+
+<body>
+    <video id="videoPlayer" controls playsinline>
+    </video>
+    <script>
+        const video = document.getElementById('videoPlayer');
+        const videoId = window.location.pathname.split('/').pop();
+        const src = '/stream/' + videoId + '/master.m3u8';
+        if (Hls.isSupported()) {
+            const hls = new Hls({ capLevelToPlayerSize: true });
+            hls.loadSource(src);
+            hls.attachMedia(video);
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = src;
+        }
+    </script>
+</body>
+
+</html>
