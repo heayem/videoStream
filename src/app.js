@@ -8,8 +8,8 @@ const app = express();
 
 app.use(express.json());
 
-// Ensure directories exist
-[UPLOADS_DIR, OUTPUT_DIR, PUBLIC_DIR].forEach(dir => {
+// Ensure upload directories exist
+[UPLOADS_DIR, OUTPUT_DIR].forEach(dir => {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
