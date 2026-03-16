@@ -15,7 +15,7 @@ class VideoService {
         return video;
     }
 
-    async createVideo(files, title) {
+    async createVideo(files, title, library, collection) {
         let videoFile = null;
         let thumbnailFile = null;
         
@@ -33,6 +33,8 @@ class VideoService {
         const newVideo = {
             id: videoId,
             title: title || videoFile.originalname,
+            library: library || '',
+            collection: collection || '',
             originalName: videoFile.originalname,
             filename: videoFile.filename,
             status: 'pending',

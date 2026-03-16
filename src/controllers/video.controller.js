@@ -22,7 +22,7 @@ class VideoController {
 
     async upload(req, res) {
         try {
-            const video = await VideoService.createVideo(req.files || {}, req.body.title);
+            const video = await VideoService.createVideo(req.files || {}, req.body.title, req.body.library, req.body.collection);
             res.status(201).json(video);
         } catch (error) {
             res.status(400).json({ error: error.message });
