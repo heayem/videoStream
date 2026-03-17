@@ -1,0 +1,16 @@
+[build]
+  command = "npm install"
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["videos.json"]
+
+# Route all non-static requests to the Express function.
+# Static files in the publish directory (public/) are served first.
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = false
